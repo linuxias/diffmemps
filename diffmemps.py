@@ -3,19 +3,25 @@
 import sys
 import os
 import csv
+import re
 
 class MemObject():
     def __init__(self, line):
         meta = [ l for l in line.split(' ') if l != '' ]
-        self._s_code = meta[0]
-        self._s_data = meta[1]
-        self._p_code = meta[2]
-        self._p_data = meta[3]
+        self._s_code = int(meta[0])
+        self._s_data = int(meta[1])
+        self._p_code = int(meta[2])
+        self._p_data = int(meta[3])
         self._sum = 0
         for m in meta[0:3]:
             self._sum += int(m)
         self._addr = meta[4]
-        self._name = meta[5]
+        regex = re.compile(r"([/a-z_-]+)-[0-9.]*.so")
+        matchobj = regex.search(meta[5])
+        if matchobj is not None:
+            self._name = matchobj.group(1)
+        else:
+            self._name = meta[5]
 
     @property
     def sum(self):
@@ -45,14 +51,28 @@ class MemObject():
     def name(self):
         return self._name
 
+    def __add__(self, mem):
+        if mem.name != self._name:
+            return None
+        self._s_code += mem.s_code
+        self._s_data += mem.s_data
+        self._p_code += mem.p_code
+        self._p_data += mem.p_data
+        return self
 
 def parse_maps(proc_path):
     parse_data = {}
     with open(proc_path) as f:
         lines = [l.strip('\n') for l in f.readlines() if l != '\n']
         for l in lines[2:]:
+            if '.so' in str(l):
+                l = (l.split('.so')[0])
+                l += '.so'
             mem = MemObject(l)
-            parse_data[mem.name] = mem
+            if mem.name in parse_data.keys():
+                parse_data[mem.name] = parse_data[mem.name] + mem
+            else:
+                parse_data[mem.name] = mem
     return parse_data
 
 def print_diff(src, des):

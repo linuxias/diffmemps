@@ -13,15 +13,10 @@ class MemObject():
         self._p_code = int(meta[2])
         self._p_data = int(meta[3])
         self._sum = 0
-        for m in meta[0:3]:
+        for m in meta[0:4]:
             self._sum += int(m)
         self._addr = meta[4]
-        regex = re.compile(r"([/a-z_-]+)-[0-9.]*.so")
-        matchobj = regex.search(meta[5])
-        if matchobj is not None:
-            self._name = matchobj.group(1)
-        else:
-            self._name = meta[5]
+        self._name = "".join(meta[5:])
 
     @property
     def sum(self):
